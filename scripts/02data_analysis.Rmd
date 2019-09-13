@@ -1,0 +1,842 @@
+---
+title: "02data_analysis"
+author: "Spiro Stilianoudakis"
+date: "February 8, 2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Loading Packages
+
+```{r}
+library(MVN)
+library(ggplot2)
+library(car)
+#library(lsmeans)
+library(ggpubr)
+#library(ICSNP)
+library(knitr)
+library(dplyr)
+library(tidyverse)  
+library(gridExtra)
+library(psych)
+library(MASS)
+#library(pca3d)
+#library(factoextra)
+#library(CCA)
+#library(CCP)
+library(GGally)
+#library(GPArotation)
+library(corrplot)
+library(lsmeans)
+library(psych)
+library(reshape)
+library(reshape2)
+library(irr)
+```
+
+# Setting Working Directory
+
+```{r}
+setwd("X:/CommonPrograms/Oral Health Services Research Core/Spiro/Susie")
+```
+
+# Reading in Data
+
+```{r}
+big5data_final <- readRDS("big5data_final.rds")
+
+big5data_final$Ethnicity[which(big5data_final$Ethnicity=="Black/African American" |
+                                 big5data_final$Ethnicity=="Hispanic")] <- "Other"
+
+persondat <- readRDS("persondat.rds")
+questdat <- readRDS("questdat.rds")
+
+#rename openness to experience as just openness
+names(big5data_final)[15] <- "Openness"
+
+#check missing scores
+big5data_final[!complete.cases(big5data_final[,11:15]),11:15]
+
+#Use mean imputation to fill in miss scores
+#big5data_final[16,12] <- mean(big5data_final$Agreeableness[which(big5data_final$Gender=="Male")], na.rm=TRUE)
+big5data_final[16,12] <- mean(big5data_final$Agreeableness, na.rm=TRUE)
+
+#big5data_final[40,11] <- mean(big5data_final$Extraversion[which(big5data_final$Gender=="Female")], na.rm=TRUE)
+big5data_final[40,11] <- mean(big5data_final$Extraversion, na.rm=TRUE)
+
+#big5data_final[40,13] <- mean(big5data_final$Conscientiousness[which(big5data_final$Gender=="Female")], na.rm=TRUE)
+big5data_final[40,13] <- mean(big5data_final$Conscientiousness, na.rm=TRUE)
+
+#big5data_final[40,15] <- mean(big5data_final$Openness[which(big5data_final$Gender=="Female")], na.rm=TRUE)
+big5data_final[40,15] <- mean(big5data_final$Openness, na.rm=TRUE)
+
+#sanity check
+big5data_final[!complete.cases(big5data_final[,11:15]),11:15]
+
+#mean imputation for missing values for schools accepted to
+big5data_final$Schools.accepted.to[is.na(big5data_final$Schools.accepted.to)] <- mean(big5data_final$Schools.accepted.to, na.rm=TRUE)
+
+```
+
+# Demographics Table
+
+## Total
+```{r}
+#year
+table(big5data_final$Year)
+prop.table(table(big5data_final$Year))
+
+#age
+table(big5data_final$Age)
+prop.table(table(big5data_final$Age))
+
+#gender
+table(big5data_final$Gender)
+prop.table(table(big5data_final$Gender))
+
+#ethnicity
+table(big5data_final$Ethnicity)
+prop.table(table(big5data_final$Ethnicity))
+
+#residency
+table(big5data_final$Residency)
+prop.table(table(big5data_final$Residency))
+
+#schools applied to
+mean(big5data_final$Schools.applied.to)
+sd(big5data_final$Schools.applied.to)
+
+#schools accepted to
+#mean(big5data_final$Schools.accepted.to)
+#sd(big5data_final$Schools.accepted.to)
+
+#undergrad gpa
+mean(big5data_final$Undergrad.GPA)
+sd(big5data_final$Undergrad.GPA)
+
+#dat score
+mean(big5data_final$DAT.score)
+sd(big5data_final$DAT.score)
+
+
+```
+
+##Stratified by Personality
+
+```{r}
+#year
+table(big5data_final$Year, big5data_final$Personality)
+round(prop.table(table(big5data_final$Year, big5data_final$Personality), 1),2)
+
+#age
+table(big5data_final$Age, big5data_final$Personality)
+round(prop.table(table(big5data_final$Age, big5data_final$Personality), 1),2)
+
+#gender
+table(big5data_final$Gender, big5data_final$Personality)
+round(prop.table(table(big5data_final$Gender, big5data_final$Personality), 1),2)
+
+
+#ethnicity
+table(big5data_final$Ethnicity, big5data_final$Personality)
+round(prop.table(table(big5data_final$Ethnicity, big5data_final$Personality), 1),2)
+
+
+#residency
+table(big5data_final$Residency, big5data_final$Personality)
+round(prop.table(table(big5data_final$Residency, big5data_final$Personality), 1),2)
+
+
+#schools applied to 
+tapply(big5data_final$Schools.applied.to, big5data_final$Personality, mean)
+tapply(big5data_final$Schools.applied.to, big5data_final$Personality, sd)
+
+
+#undergrad gpa
+tapply(big5data_final$Undergrad.GPA, big5data_final$Personality, mean)
+tapply(big5data_final$Undergrad.GPA, big5data_final$Personality, sd)
+
+
+#dat score
+tapply(big5data_final$DAT.score, big5data_final$Personality, mean)
+tapply(big5data_final$DAT.score, big5data_final$Personality, sd)
+
+
+
+```
+
+##Significance tests
+
+```{r}
+#year
+fisher.test(table(big5data_final$Year, big5data_final$Personality))
+
+#age
+fisher.test(table(big5data_final$Age, big5data_final$Personality))
+
+#gender
+fisher.test(table(big5data_final$Gender, big5data_final$Personality))
+
+#ethnicity
+fisher.test(table(big5data_final$Ethnicity, big5data_final$Personality))
+
+#residency
+fisher.test(table(big5data_final$Residency, big5data_final$Personality))
+
+#schools applied to
+summary(aov(Schools.applied.to ~ Personality, data=big5data_final))
+
+#undergrad gpa
+summary(aov(Undergrad.GPA ~ Personality, data=big5data_final))
+
+#dat score
+summary(aov(DAT.score ~ Personality, data=big5data_final))
+
+```
+
+# MANOVA (revised 3/15/19)
+
+```{r}
+
+model <- lm(cbind(Extraversion, 
+                  Agreeableness,
+                  Conscientiousness, 
+                  Neuroticism, 
+                  Openness) ~ Gender + Year +  Age + Undergrad.GPA + DAT.score + Residency + Ethnicity, data=big5data_final)
+
+summary(manova(model), test = "Wilks")
+summary(manova(model), test = "Roy")
+
+#lsm <- lsmeans(model, "Gender")
+#test(contrast(lsm, "pairwise"), side = "=",  adjust = "tukey")
+
+#Agreeableness
+mean(big5data_final$Agreeableness[which(big5data_final$Gender=="Male")])
+mean(big5data_final$Agreeableness[which(big5data_final$Gender=="Female")])
+sd(big5data_final$Agreeableness[which(big5data_final$Gender=="Male")])
+sd(big5data_final$Agreeableness[which(big5data_final$Gender=="Female")])
+
+tapply(big5data_final$Agreeableness, big5data_final$Year, mean)
+tapply(big5data_final$Agreeableness, big5data_final$Year, sd)
+
+#Conscientiousness
+mean(big5data_final$Conscientiousness[which(big5data_final$Gender=="Male")])
+mean(big5data_final$Conscientiousness[which(big5data_final$Gender=="Female")])
+sd(big5data_final$Conscientiousness[which(big5data_final$Gender=="Male")])
+sd(big5data_final$Conscientiousness[which(big5data_final$Gender=="Female")])
+
+tapply(big5data_final$Conscientiousness, big5data_final$Year, mean)
+tapply(big5data_final$Conscientiousness, big5data_final$Year, sd)
+
+#Neuroticism
+mean(big5data_final$Neuroticism[which(big5data_final$Gender=="Male")])
+mean(big5data_final$Neuroticism[which(big5data_final$Gender=="Female")])
+sd(big5data_final$Neuroticism[which(big5data_final$Gender=="Male")])
+sd(big5data_final$Neuroticism[which(big5data_final$Gender=="Female")])
+
+tapply(big5data_final$Neuroticism, big5data_final$Year, mean)
+tapply(big5data_final$Neuroticism, big5data_final$Year, sd)
+
+#Extraversion
+mean(big5data_final$Extraversion[which(big5data_final$Gender=="Male")])
+mean(big5data_final$Extraversion[which(big5data_final$Gender=="Female")])
+sd(big5data_final$Extraversion[which(big5data_final$Gender=="Male")])
+sd(big5data_final$Extraversion[which(big5data_final$Gender=="Female")])
+
+tapply(big5data_final$Extraversion, big5data_final$Year, mean)
+tapply(big5data_final$Extraversion, big5data_final$Year, sd)
+
+#Openness
+mean(big5data_final$Openness[which(big5data_final$Gender=="Male")])
+mean(big5data_final$Openness[which(big5data_final$Gender=="Female")])
+sd(big5data_final$Openness[which(big5data_final$Gender=="Male")])
+sd(big5data_final$Openness[which(big5data_final$Gender=="Female")])
+
+tapply(big5data_final$Openness, big5data_final$Year, mean)
+tapply(big5data_final$Openness, big5data_final$Year, sd)
+
+
+summary.aov(lm(cbind(Extraversion, 
+                  Agreeableness,
+                  Conscientiousness, 
+                  Neuroticism, 
+                  Openness) ~ Gender + Year, data=big5data_final))
+
+model2 <- lm(cbind(Extraversion, 
+                  Agreeableness,
+                  Conscientiousness, 
+                  Neuroticism, 
+                  Openness) ~ Gender + Year, data=big5data_final)
+
+#adjusted
+##gender
+p.adjust(c(summary.aov(model2)$` Response Agreeableness`$`Pr(>F)`[1],
+              summary.aov(model2)$` Response Conscientiousness`$`Pr(>F)`[1],
+              summary.aov(model2)$` Response Neuroticism`$`Pr(>F)`[1],
+              summary.aov(model2)$` Response Extraversion`$`Pr(>F)`[1],
+              summary.aov(model2)$` Response Openness`$`Pr(>F)`[1]),
+              method = "bonferroni")
+##year
+p.adjust(c(summary.aov(model2)$` Response Agreeableness`$`Pr(>F)`[2],
+              summary.aov(model2)$` Response Conscientiousness`$`Pr(>F)`[2],
+              summary.aov(model2)$` Response Neuroticism`$`Pr(>F)`[2],
+              summary.aov(model2)$` Response Extraversion`$`Pr(>F)`[2],
+              summary.aov(model2)$` Response Openness`$`Pr(>F)`[2]),
+              method = "bonferroni")
+
+#unadjusted
+##gender
+round(c(summary.aov(model2)$` Response Agreeableness`$`Pr(>F)`[1],
+              summary.aov(model2)$` Response Conscientiousness`$`Pr(>F)`[1],
+              summary.aov(model2)$` Response Neuroticism`$`Pr(>F)`[1],
+              summary.aov(model2)$` Response Extraversion`$`Pr(>F)`[1],
+              summary.aov(model2)$` Response Openness`$`Pr(>F)`[1]),4)
+##year
+round(c(summary.aov(model2)$` Response Agreeableness`$`Pr(>F)`[2],
+              summary.aov(model2)$` Response Conscientiousness`$`Pr(>F)`[2],
+              summary.aov(model2)$` Response Neuroticism`$`Pr(>F)`[2],
+              summary.aov(model2)$` Response Extraversion`$`Pr(>F)`[2],
+              summary.aov(model2)$` Response Openness`$`Pr(>F)`[2]),4)
+
+```
+
+#Investigating Agreeableness
+
+```{r}
+agreedat <- questdat[,c(1,3,8,13,18, 23,28,33,38,43,48)]
+
+#recoding word responses to numeric responses
+##omit first column (ID) and 6th column (already numeric)
+agreedat[,-c(1,6)] <- apply(agreedat[,-c(1,6)], 2, function(x){ifelse(x=="Very Accurate", 5, 
+                                           ifelse(x=="Moderately Accurate", 4,
+                                                  ifelse(x=="Neither Accurate nor Inaccurate", 3, 
+                                                         ifelse(x=="Moderately Inaccurate", 2,
+                                                               ifelse(x=="Very Inaccurate", 1, NA)))))})
+
+#reverse code negative questions
+agreedat[,c(2,4,6,8)] <- apply(agreedat[,c(2,4,6,8)], 2, function(x){ifelse(x==1, 5, 
+                                           ifelse(x==2, 4,
+                                                  ifelse(x==3, 3, 
+                                                         ifelse(x==4, 2,
+                                                               ifelse(x==5, 1, NA)))))})
+
+agreedat <- agreedat[which(agreedat$Record.ID %in% big5data_final$Id),]
+
+agreedat$Gender <- big5data_final$Gender[which(big5data_final$Id %in% agreedat$Record.ID)]
+
+malecor <- cor(agreedat[which(agreedat$Gender=="Male"),-c(1,12)], method = "spearman")
+femalecor <- cor(agreedat[which(agreedat$Gender=="Female"),-c(1,12)], method = "spearman")
+
+
+model2 <- lm(cbind(Feel.little.concern.for.others., 
+                  Am.interested.in.people.,
+                  Insult.people., 
+                  Sympathize.with.others..feelings., 
+                  Am.not.interested.in.other.people.s.problems.,
+                  Have.a.soft.heart.,
+                  Am.not.really.interested.in.others.,
+                  Take.time.out.for.others.,
+                  Feel.others..emotions.,
+                  Make.people.feel.at.ease.) ~ Gender, data=agreedat)
+
+summary(manova(model2))
+
+summary.aov(model2)
+
+round(p.adjust(c(summary.aov(model2)$` Response Feel.little.concern.for.others.`$`Pr(>F)`[1],
+summary.aov(model2)$` Response Am.interested.in.people.`$`Pr(>F)`[1],
+summary.aov(model2)$` Response Insult.people.`$`Pr(>F)`[1],
+summary.aov(model2)$` Response Sympathize.with.others..feelings.`$`Pr(>F)`[1],
+summary.aov(model2)$` Response Am.not.interested.in.other.people.s.problems.`$`Pr(>F)`[1],
+summary.aov(model2)$` Response Have.a.soft.heart.`$`Pr(>F)`[1],
+summary.aov(model2)$` Response Am.not.really.interested.in.others.`$`Pr(>F)`[1],
+summary.aov(model2)$` Response Take.time.out.for.others.`$`Pr(>F)`[1],
+summary.aov(model2)$` Response Feel.others..emotions.`$`Pr(>F)`[1],
+summary.aov(model2)$` Response Make.people.feel.at.ease.`$`Pr(>F)`[1]),
+method = "bonferroni"),4)
+
+#nonparametric
+##adjusted
+round(p.adjust(c(kruskal.test(Feel.little.concern.for.others. ~ as.factor(Gender), data = agreedat)$p.value,
+kruskal.test(Am.interested.in.people. ~ as.factor(Gender), data = agreedat)$p.value,
+kruskal.test(Insult.people. ~ as.factor(Gender), data = agreedat)$p.value,
+kruskal.test(Sympathize.with.others..feelings. ~ as.factor(Gender), data = agreedat)$p.value,
+kruskal.test(Am.not.interested.in.other.people.s.problems. ~ as.factor(Gender), data = agreedat)$p.value,
+kruskal.test(Have.a.soft.heart. ~ as.factor(Gender), data = agreedat)$p.value,
+kruskal.test(Am.not.really.interested.in.others. ~ as.factor(Gender), data = agreedat)$p.value,
+kruskal.test(Take.time.out.for.others. ~ as.factor(Gender), data = agreedat)$p.value,
+kruskal.test(Feel.others..emotions. ~ as.factor(Gender), data = agreedat)$p.value,
+kruskal.test(Make.people.feel.at.ease. ~ as.factor(Gender), data = agreedat)$p.value), 
+method="bonferroni"), 4)
+
+##unadjusted
+round(c(kruskal.test(Feel.little.concern.for.others. ~ as.factor(Gender), data = agreedat)$p.value,
+kruskal.test(Am.interested.in.people. ~ as.factor(Gender), data = agreedat)$p.value,
+kruskal.test(Insult.people. ~ as.factor(Gender), data = agreedat)$p.value,
+kruskal.test(Sympathize.with.others..feelings. ~ as.factor(Gender), data = agreedat)$p.value,
+kruskal.test(Am.not.interested.in.other.people.s.problems. ~ as.factor(Gender), data = agreedat)$p.value,
+kruskal.test(Have.a.soft.heart. ~ as.factor(Gender), data = agreedat)$p.value,
+kruskal.test(Am.not.really.interested.in.others. ~ as.factor(Gender), data = agreedat)$p.value,
+kruskal.test(Take.time.out.for.others. ~ as.factor(Gender), data = agreedat)$p.value,
+kruskal.test(Feel.others..emotions. ~ as.factor(Gender), data = agreedat)$p.value,
+kruskal.test(Make.people.feel.at.ease. ~ as.factor(Gender), data = agreedat)$p.value), 4)
+
+
+#plots
+#agreedatplot <- melt(agreedat[,-1])
+
+#ggplot(agreedatplot, aes(x=variable, y=value, fill=Gender)) +
+#  #stat_boxplot(geom = "errorbar")+
+#  geom_boxplot(position=position_dodge(1))+
+#  geom_boxplot(aes(fill = Evaluation))
+
+lapply(agreedat[,-c(1,12)],function(x){
+       tapply(x, agreedat$Gender, median)})
+lapply(agreedat[,-c(1,12)],function(x){
+       tapply(x, agreedat$Gender, summary)})
+```
+
+##kappa
+
+```{r}
+agreedat2 <- agreedat[,-c(1,12)]
+
+M <- cor(agreedat2, method = "spearman")
+#corrplot(M, type="upper")
+
+kappamat <- matrix(nrow = dim(agreedat2)[2],
+                   ncol = dim(agreedat2)[2])
+
+for(i in 1:dim(agreedat2)[2]){
+  for(j in 1:dim(agreedat2)[2]){
+    kappamat[i,j] <- kappa2(agreedat2[,c(i,j)], weight = "squared")$value
+  }
+}
+
+colnames(kappamat) <- rownames(kappamat) <- c("Feel little concern for others",
+                                              "Am interested in people",
+                                              "Insult people",
+                                              "Sympathize with others' feelings",
+                                              "Am not interested in other peoples' problems",
+                                              "Have a soft heart",
+                                              "Am not really interested in others",
+                                              "Take time out for others",
+                                              "Feel others' emotions",
+                                              "Make people feel at ease")
+
+pmat <- matrix(nrow = dim(agreedat2)[2],
+                   ncol = dim(agreedat2)[2])
+
+for(i in 1:dim(agreedat2)[2]){
+  for(j in 1:dim(agreedat2)[2]){
+    pmat[i,j] <- kappa2(agreedat2[,c(i,j)], weight = "squared")$p.value
+  }
+}
+
+diag(pmat) <- 0
+
+col <- colorRampPalette(rev(c("#BB4444", "#EE9988", "#FFFFFF", "#77AADD", "#4477AA")))
+corrplot(kappamat, method="color", col=col(200),  
+         type="upper", order="hclust", 
+         addCoef.col = "black", # Add coefficient of correlation
+         tl.col="black", tl.srt=90, #Text label color and rotation
+         # Combine with significance
+         #p.mat = pmat, sig.level = 0.05, insig = "blank", 
+         # hide correlation coefficient on the principal diagonal
+         diag=FALSE, 
+         cl.pos = "n",
+         tl.cex = .75,
+         number.cex = .75
+)
+```
+
+##Cronbachs alpha
+
+```{r}
+agree.alpha <- psych::alpha(agreedat2, n.iter = 10000)
+```
+
+
+#Investigating Emotional stability
+
+```{r}
+emotdat <- questdat[,c(1,5,10,15,20,25,30,35,40,45,50)]
+
+#recoding word responses to numeric responses
+emotdat[,-1] <- apply(emotdat[,-1], 2, function(x){ifelse(x=="Very Accurate", 5, 
+                                           ifelse(x=="Moderately Accurate", 4,
+                                                  ifelse(x=="Neither Accurate nor Inaccurate", 3, 
+                                                         ifelse(x=="Moderately Inaccurate", 2,
+                                                               ifelse(x=="Very Inaccurate", 1, NA)))))})
+
+#reverse code negative questions
+emotdat[,c(2,4,6,7,8,9,10,11)] <- apply(emotdat[,c(2,4,6,7,8,9,10,11)], 2, function(x){ifelse(x==1, 5, 
+                                           ifelse(x==2, 4,
+                                                  ifelse(x==3, 3, 
+                                                         ifelse(x==4, 2,
+                                                               ifelse(x==5, 1, NA)))))})
+
+emotdat <- emotdat[which(emotdat$Record.ID %in% big5data_final$Id),]
+
+emotdat$Gender <- big5data_final$Gender[which(big5data_final$Id %in% emotdat$Record.ID)]
+
+malecor <- cor(emotdat[which(emotdat$Gender=="Male"),-c(1,12)], method = "spearman")
+femalecor <- cor(emotdat[which(emotdat$Gender=="Female"),-c(1,12)], method = "spearman")
+
+#nonparametric
+##adjusted
+round(p.adjust(c(kruskal.test(Get.stressed.out.easily. ~ as.factor(Gender), data = emotdat)$p.value,
+kruskal.test(Am.relaxed.most.of.the.time. ~ as.factor(Gender), data = emotdat)$p.value,
+kruskal.test(Worry.about.things. ~ as.factor(Gender), data = emotdat)$p.value,
+kruskal.test(Seldom.feel.blue. ~ as.factor(Gender), data = emotdat)$p.value,
+kruskal.test(Am.easily.disturbed. ~ as.factor(Gender), data = emotdat)$p.value,
+kruskal.test(Get.upset.easily. ~ as.factor(Gender), data = emotdat)$p.value,
+kruskal.test(Change.my.mood.a.lot. ~ as.factor(Gender), data = emotdat)$p.value,
+kruskal.test(Have.frequent.mood.swings. ~ as.factor(Gender), data = emotdat)$p.value,
+kruskal.test(Get.irritated.easily. ~ as.factor(Gender), data = emotdat)$p.value,
+kruskal.test(Often.feel.blue. ~ as.factor(Gender), data = emotdat)$p.value),
+method = "bonferroni"), 4)
+
+##unadjusted
+round(c(kruskal.test(Get.stressed.out.easily. ~ as.factor(Gender), data = emotdat)$p.value,
+kruskal.test(Am.relaxed.most.of.the.time. ~ as.factor(Gender), data = emotdat)$p.value,
+kruskal.test(Worry.about.things. ~ as.factor(Gender), data = emotdat)$p.value,
+kruskal.test(Seldom.feel.blue. ~ as.factor(Gender), data = emotdat)$p.value,
+kruskal.test(Am.easily.disturbed. ~ as.factor(Gender), data = emotdat)$p.value,
+kruskal.test(Get.upset.easily. ~ as.factor(Gender), data = emotdat)$p.value,
+kruskal.test(Change.my.mood.a.lot. ~ as.factor(Gender), data = emotdat)$p.value,
+kruskal.test(Have.frequent.mood.swings. ~ as.factor(Gender), data = emotdat)$p.value,
+kruskal.test(Get.irritated.easily. ~ as.factor(Gender), data = emotdat)$p.value,
+kruskal.test(Often.feel.blue. ~ as.factor(Gender), data = emotdat)$p.value), 4)
+
+
+lapply(emotdat[,-c(1,12)],function(x){
+       tapply(x, emotdat$Gender, median)})
+lapply(emotdat[,-c(1,12)],function(x){
+       tapply(x, emotdat$Gender, summary)})
+```
+
+##kappa
+
+```{r}
+emotdat2 <- emotdat[,-c(1,12)]
+
+M <- cor(emotdat2, method = "spearman")
+#corrplot(M, type="upper")
+
+kappamat <- matrix(nrow = dim(emotdat2)[2],
+                   ncol = dim(emotdat2)[2])
+
+for(i in 1:dim(emotdat2)[2]){
+  for(j in 1:dim(emotdat2)[2]){
+    kappamat[i,j] <- kappa2(emotdat2[,c(i,j)], weight = "squared")$value
+  }
+}
+
+colnames(kappamat) <- rownames(kappamat) <- c("Get stressed out easily",
+                                              "Am relaxed most of the time",
+                                              "Worry about things",
+                                              "Seldom feel blue",
+                                              "Am easily disturbed",
+                                              "Get upset easily",
+                                              "Change my mood a lot",
+                                              "Have frequent mood swings",
+                                              "Get irritated easily",
+                                              "Often feel blue")
+
+pmat <- matrix(nrow = dim(emotdat2)[2],
+                   ncol = dim(emotdat2)[2])
+
+for(i in 1:dim(emotdat2)[2]){
+  for(j in 1:dim(emotdat2)[2]){
+    pmat[i,j] <- kappa2(emotdat2[,c(i,j)], weight = "squared")$p.value
+  }
+}
+
+diag(pmat) <- 0
+
+col <- colorRampPalette(rev(c("#BB4444", "#EE9988", "#FFFFFF", "#77AADD", "#4477AA")))
+corrplot(kappamat, method="color", col=col(200),  
+         type="upper", order="hclust", 
+         addCoef.col = "black", # Add coefficient of correlation
+         tl.col="black", tl.srt=90, #Text label color and rotation
+         # Combine with significance
+         #p.mat = pmat, sig.level = 0.05, insig = "blank", 
+         # hide correlation coefficient on the principal diagonal
+         diag=FALSE, 
+         cl.pos = "n",
+         tl.cex = .75,
+         number.cex = .75
+)
+```
+
+##Cronbachs alpha
+
+```{r}
+emot.alpha <- psych::alpha(emotdat2, n.iter = 10000)
+```
+
+
+# Investigating Conscientiousness
+
+```{r}
+condat <- questdat[,c(1,4,9,14,19,24,29,34,39,44,49)]
+
+#recoding word responses to numeric responses
+condat[,-1] <- apply(condat[,-1], 2, function(x){ifelse(x=="Very Accurate", 5, 
+                                           ifelse(x=="Moderately Accurate", 4,
+                                                  ifelse(x=="Neither Accurate nor Inaccurate", 3, 
+                                                         ifelse(x=="Moderately Inaccurate", 2,
+                                                               ifelse(x=="Very Inaccurate", 1, NA)))))})
+
+#reverse code negative questions
+condat[,c(3,5,7,9)] <- apply(condat[,c(3,5,7,9)], 2, function(x){ifelse(x==1, 5, 
+                                           ifelse(x==2, 4,
+                                                  ifelse(x==3, 3, 
+                                                         ifelse(x==4, 2,
+                                                               ifelse(x==5, 1, NA)))))})
+
+condat <- condat[which(condat$Record.ID %in% big5data_final$Id),]
+
+condat$Gender <- big5data_final$Gender[which(big5data_final$Id %in% condat$Record.ID)]
+
+```
+
+
+###kappa
+
+```{r}
+condat2 <- condat[,-c(1,12)]
+
+M <- cor(condat2, method = "spearman")
+#corrplot(M, type="upper")
+
+kappamat <- matrix(nrow = dim(condat2)[2],
+                   ncol = dim(condat2)[2])
+
+for(i in 1:dim(condat2)[2]){
+  for(j in 1:dim(condat2)[2]){
+    kappamat[i,j] <- kappa2(condat2[,c(i,j)], weight = "squared")$value
+  }
+}
+
+colnames(kappamat) <- rownames(kappamat) <- c("Get stressed out easily",
+                                              "Am relaxed most of the time",
+                                              "Worry about things",
+                                              "Seldom feel blue",
+                                              "Am easily disturbed",
+                                              "Get upset easily",
+                                              "Change my mood a lot",
+                                              "Have frequent mood swings",
+                                              "Get irritated easily",
+                                              "Often feel blue")
+
+pmat <- matrix(nrow = dim(condat2)[2],
+                   ncol = dim(condat2)[2])
+
+for(i in 1:dim(condat2)[2]){
+  for(j in 1:dim(condat2)[2]){
+    pmat[i,j] <- kappa2(condat2[,c(i,j)], weight = "squared")$p.value
+  }
+}
+
+diag(pmat) <- 0
+
+col <- colorRampPalette(rev(c("#BB4444", "#EE9988", "#FFFFFF", "#77AADD", "#4477AA")))
+corrplot(kappamat, method="color", col=col(200),  
+         type="upper", order="hclust", 
+         addCoef.col = "black", # Add coefficient of correlation
+         tl.col="black", tl.srt=90, #Text label color and rotation
+         # Combine with significance
+         #p.mat = pmat, sig.level = 0.05, insig = "blank", 
+         # hide correlation coefficient on the principal diagonal
+         diag=FALSE, 
+         cl.pos = "n",
+         tl.cex = .75,
+         number.cex = .75
+)
+```
+
+##Cronbachs alpha
+
+```{r}
+con.alpha <- psych::alpha(condat2, n.iter = 10000)
+```
+
+
+# Investigating Extraversion
+
+```{r}
+extradat <- questdat[,c(1,2,7,12,17,22,27,32,37,42,47)]
+
+#recoding word responses to numeric responses
+extradat[,-1] <- apply(extradat[,-1], 2, function(x){ifelse(x=="Very Accurate", 5, 
+                                           ifelse(x=="Moderately Accurate", 4,
+                                                  ifelse(x=="Neither Accurate nor Inaccurate", 3, 
+                                                         ifelse(x=="Moderately Inaccurate", 2,
+                                                               ifelse(x=="Very Inaccurate", 1, NA)))))})
+
+#reverse code negative questions
+extradat[,c(3,5,7,9,11)] <- apply(extradat[,c(3,5,7,9,11)], 2, function(x){ifelse(x==1, 5, 
+                                           ifelse(x==2, 4,
+                                                  ifelse(x==3, 3, 
+                                                         ifelse(x==4, 2,
+                                                               ifelse(x==5, 1, NA)))))})
+
+extradat <- extradat[which(extradat$Record.ID %in% big5data_final$Id),]
+
+extradat$Gender <- big5data_final$Gender[which(big5data_final$Id %in% extradat$Record.ID)]
+
+```
+
+##kappa
+
+```{r}
+extradat2 <- extradat[,-c(1,12)]
+
+M <- cor(extradat2, method = "spearman")
+#corrplot(M, type="upper")
+
+kappamat <- matrix(nrow = dim(extradat2)[2],
+                   ncol = dim(extradat2)[2])
+
+for(i in 1:dim(extradat2)[2]){
+  for(j in 1:dim(extradat2)[2]){
+    kappamat[i,j] <- kappa2(extradat2[,c(i,j)], weight = "squared")$value
+  }
+}
+
+colnames(kappamat) <- rownames(kappamat) <- c("Am the life of the party",
+                                              "Don't talk a lot",
+                                              "Feel comfortable around people",
+                                              "Keep in the backgroud",
+                                              "Start conversations",
+                                              "Have little to say",
+                                              "Talk to a lot of different people at parties",
+                                              "Don't like to draw attention to myself",
+                                              "Don't mind being the center of attention",
+                                              "Am quiet around strangers")
+
+pmat <- matrix(nrow = dim(extradat2)[2],
+                   ncol = dim(extradat2)[2])
+
+for(i in 1:dim(extradat2)[2]){
+  for(j in 1:dim(extradat2)[2]){
+    pmat[i,j] <- kappa2(extradat2[,c(i,j)], weight = "squared")$p.value
+  }
+}
+
+diag(pmat) <- 0
+
+col <- colorRampPalette(rev(c("#BB4444", "#EE9988", "#FFFFFF", "#77AADD", "#4477AA")))
+corrplot(kappamat, method="color", col=col(200),  
+         type="upper", order="hclust", 
+         addCoef.col = "black", # Add coefficient of correlation
+         tl.col="black", tl.srt=90, #Text label color and rotation
+         # Combine with significance
+         #p.mat = pmat, sig.level = 0.05, insig = "blank", 
+         # hide correlation coefficient on the principal diagonal
+         diag=FALSE, 
+         cl.pos = "n",
+         tl.cex = .75,
+         number.cex = .75
+)
+```
+
+##Cronbachs alpha
+
+```{r}
+extra.alpha <- psych::alpha(extradat2, n.iter = 10000)
+```
+
+
+# Investigating Openness to Experience
+
+```{r}
+opendat <- questdat[,c(1,6,11,16,21,26,31,36,41,46,51)]
+
+#recoding word responses to numeric responses
+opendat[,-1] <- apply(opendat[,-1], 2, function(x){ifelse(x=="Very Accurate", 5, 
+                                           ifelse(x=="Moderately Accurate", 4,
+                                                  ifelse(x=="Neither Accurate nor Inaccurate", 3, 
+                                                         ifelse(x=="Moderately Inaccurate", 2,
+                                                               ifelse(x=="Very Inaccurate", 1, NA)))))})
+
+#reverse code negative questions
+opendat[,c(3,5,7)] <- apply(opendat[,c(3,5,7)], 2, function(x){ifelse(x==1, 5, 
+                                           ifelse(x==2, 4,
+                                                  ifelse(x==3, 3, 
+                                                         ifelse(x==4, 2,
+                                                               ifelse(x==5, 1, NA)))))})
+
+opendat <- opendat[which(opendat$Record.ID %in% big5data_final$Id),]
+
+opendat$Gender <- big5data_final$Gender[which(big5data_final$Id %in% opendat$Record.ID)]
+
+```
+
+
+##kappa
+
+```{r}
+opendat2 <- opendat[,-c(1,12)]
+
+M <- cor(opendat2, method = "spearman")
+#corrplot(M, type="upper")
+
+kappamat <- matrix(nrow = dim(opendat2)[2],
+                   ncol = dim(opendat2)[2])
+
+for(i in 1:dim(opendat2)[2]){
+  for(j in 1:dim(opendat2)[2]){
+    kappamat[i,j] <- kappa2(opendat2[,c(i,j)], weight = "squared")$value
+  }
+}
+
+colnames(kappamat) <- rownames(kappamat) <- c("Have a rich vocabulary",
+                                              "Have difficulty understanding abstract ideas",
+                                              "Have a vivid imagination",
+                                              "Am not interested in abstract ideas",
+                                              "Have excellent ideas",
+                                              "Do not have a good imagination",
+                                              "Am quick to understand things",
+                                              "Use difficult words",
+                                              "Spend time reflecting on things",
+                                              "Am full of ideas")
+
+pmat <- matrix(nrow = dim(opendat2)[2],
+                   ncol = dim(opendat2)[2])
+
+for(i in 1:dim(opendat2)[2]){
+  for(j in 1:dim(opendat2)[2]){
+    pmat[i,j] <- kappa2(opendat2[,c(i,j)], weight = "squared")$p.value
+  }
+}
+
+diag(pmat) <- 0
+
+col <- colorRampPalette(rev(c("#BB4444", "#EE9988", "#FFFFFF", "#77AADD", "#4477AA")))
+corrplot(kappamat, method="color", col=col(200),  
+         type="upper", order="hclust", 
+         addCoef.col = "black", # Add coefficient of correlation
+         tl.col="black", tl.srt=90, #Text label color and rotation
+         # Combine with significance
+         #p.mat = pmat, sig.level = 0.05, insig = "blank", 
+         # hide correlation coefficient on the principal diagonal
+         diag=FALSE, 
+         cl.pos = "n",
+         tl.cex = .75,
+         number.cex = .75
+)
+```
+
+##Cronbachs alpha
+
+```{r}
+open.alpha <- psych::alpha(opendat2, n.iter = 10000)
+```
+

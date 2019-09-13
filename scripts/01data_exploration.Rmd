@@ -1,0 +1,280 @@
+---
+title: "Big 5 Personality"
+subtitle: "Data Exploration"
+author: "Spiro Stilianoudakis"
+date: "January 2, 2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Loading Packages
+
+```{r}
+library(MVN)
+library(ggplot2)
+library(car)
+#library(lsmeans)
+library(ggpubr)
+#library(ICSNP)
+library(knitr)
+library(dplyr)
+library(tidyverse)  
+library(gridExtra)
+library(psych)
+library(MASS)
+#library(pca3d)
+#library(factoextra)
+#library(CCA)
+#library(CCP)
+library(GGally)
+#library(GPArotation)
+library(corrplot)
+
+```
+
+# Setting Working Directory
+
+```{r}
+setwd("X:/CommonPrograms/Oral Health Services Research Core/Spiro/Susie")
+```
+
+# Reading in Data
+
+```{r}
+big5dat <- read.csv("big5data.csv",
+                      header = TRUE,
+                      na.strings = c("[not completed]", ""),
+                    stringsAsFactors = FALSE,
+                    skip = 0)
+dim(big5dat) #68 79
+```
+
+# Data Exploration
+
+## Column names
+```{r}
+names(big5dat)
+```
+
+## Demographic Data
+
+```{r}
+demodat <- big5dat[,c(1,4:23)]
+dim(demodat) #68 21
+
+#removing faculty members
+table(demodat$Please.indicate.your.affiliation.with.the.dental.school.,
+      exclude = "ifany")
+demodat <- demodat[-which(demodat$Please.indicate.your.affiliation.with.the.dental.school.=="Faculty Member (on Admissions Committee)" |
+                            is.na(demodat$Please.indicate.your.affiliation.with.the.dental.school.) |
+                            demodat$Please.indicate.your.affiliation.with.the.dental.school.=="Other"),]
+table(demodat$Please.indicate.your.affiliation.with.the.dental.school.,
+      exclude = "ifany")
+#Dental Student 
+#            60
+
+#Year of Dental School
+table(demodat$What.year.are.you.in.dental.school., exclude = "ifany")
+demodat$What.year.are.you.in.dental.school. <- substr(demodat$What.year.are.you.in.dental.school.,
+                                                      1,2)
+table(demodat$What.year.are.you.in.dental.school., exclude = "ifany")
+#D1 D2 D3 D4 
+#16 15 17 12 
+
+#Age
+table(demodat$What.is.your.age., exclude = "ifany")
+##recode 31-35 and 35+ as >30
+demodat$What.is.your.age.[which(demodat$What.is.your.age.=="31-35" |
+                                  demodat$What.is.your.age.=="35+")] <- ">30"
+table(demodat$What.is.your.age., exclude = "ifany")
+#>30 20-25 26-30 
+#    7    39    14 
+
+#Highest Level of Education Prior to Dental School
+table(demodat$What.is.the.highest.level.of.education.you.have.achieved.prior.to.dental.school., exclude = "ifany")
+
+#Military Background
+table(demodat$Do.you.have.a.military.background., exclude = "ifany")
+
+#Family Members that are dentists
+table(demodat$Do.you.have.any.family.members.who.are.dentists., exclude = "ifany")
+
+#Number of schools applied to
+summary(demodat$Roughly.how.many.schools.did.you.apply.to.for.dental.school.)
+demodat$Record.ID[is.na(demodat$Roughly.how.many.schools.did.you.apply.to.for.dental.school.)]
+#29
+##impute using mean
+
+#Number of schools accepted into
+summary(demodat$Roughly.how.many.schools.were.you.accepted.to.attend.)
+which(is.na(demodat$Roughly.how.many.schools.were.you.accepted.to.attend.))
+#26
+##use mean imputation according to year of dental school
+tapply(demodat$Roughly.how.many.schools.did.you.apply.to.for.dental.school., demodat$What.year.are.you.in.dental.school., function(x){mean(x,na.rm = TRUE)})
+demodat$Roughly.how.many.schools.did.you.apply.to.for.dental.school.[26] <- 8.4
+
+#Did you ever reapply to vcu
+table(demodat$Did.you.ever.reapply.to.VCU., exclude = "ifany")
+which(is.na(demodat$Did.you.ever.reapply.to.VCU.))
+#19
+
+#Undergrad gpa
+summary(demodat$Roughly..what.was.your.undergraduate.GPA.)
+which(is.na(demodat$Roughly..what.was.your.undergraduate.GPA.))
+#17 26 34
+##mean imputation using dental school year
+demodat$What.year.are.you.in.dental.school.[which(is.na(demodat$Roughly..what.was.your.undergraduate.GPA.))]
+tapply(demodat$Roughly..what.was.your.undergraduate.GPA., demodat$What.year.are.you.in.dental.school., function(x){mean(x,na.rm = TRUE)})
+demodat$Roughly..what.was.your.undergraduate.GPA.[c(17,34)] <- 3.68
+demodat$Roughly..what.was.your.undergraduate.GPA.[c(26)] <- 3.66
+summary(demodat$Roughly..what.was.your.undergraduate.GPA.)
+
+
+#Grad gpa
+summary(demodat$Roughly..what.was.your.graduate.professional.GPA.)
+table(demodat$What.year.are.you.in.dental.school.[is.na(demodat$Roughly..what.was.your.graduate.professional.GPA.)])
+#D1 D2 D3 D4 
+#11  8 10  3 
+
+#DAT score
+table(demodat$Roughly..what.was.your.DAT.score., exclude = "ifany")
+##combining multple ddat scores into average score
+demodat$Roughly..what.was.your.DAT.score.[which(demodat$Roughly..what.was.your.DAT.score.=="23, 27")] <- "25"
+table(demodat$Roughly..what.was.your.DAT.score., exclude = "ifany")
+demodat$Roughly..what.was.your.DAT.score. <- as.numeric(demodat$Roughly..what.was.your.DAT.score.)
+summary(demodat$Roughly..what.was.your.DAT.score.)
+which(is.na(demodat$Roughly..what.was.your.DAT.score.))
+#13 17 19 20 26 34 53
+##mean imputation using dental school year
+demodat$What.year.are.you.in.dental.school.[which(is.na(demodat$Roughly..what.was.your.DAT.score.))]
+tapply(demodat$Roughly..what.was.your.DAT.score., demodat$What.year.are.you.in.dental.school., function(x){mean(x,na.rm = TRUE)})
+demodat$Roughly..what.was.your.DAT.score.[c(17,34)] <- 21.23
+demodat$Roughly..what.was.your.DAT.score.[c(13,19,20,26,53)] <- 21.67
+summary(demodat$Roughly..what.was.your.DAT.score.)
+
+
+#Plans following graduation
+table(demodat$What.are.your.plans.following.graduation., exclude="ifany")
+demodat$What.are.your.plans.following.graduation.[which(demodat$What.are.your.plans.following.graduation.=="Public practice [FQHC]")] <- "Other"
+table(demodat$What.are.your.plans.following.graduation., exclude="ifany")
+
+#Which residency most interested in
+table(demodat$Which.residency.are.you.most.interested.in., exclude = "ifany")
+demodat$Which.residency.are.you.most.interested.in.[which(demodat$Which.residency.are.you.most.interested.in. %in% c("Advanced Education in General Dentistry",
+                                                                                                                     "Endodontics",
+                                                                                                                     "Periodontics"))] <- "Other"
+demodat$Which.residency.are.you.most.interested.in.[which(is.na(demodat$Which.residency.are.you.most.interested.in.))] <- "Not interested"
+table(demodat$Which.residency.are.you.most.interested.in., exclude = "ifany")
+
+#Gender
+table(demodat$What.is.your.gender., exclude = "ifany")
+
+#Ethnicity
+table(demodat$What.is.your.ethnic.racial.background., exclude = "ifany")
+demodat$Record.ID[which(is.na(demodat$What.is.your.ethnic.racial.background.))]
+#14 19
+
+#Changing variable names
+names(demodat) <- c("Id",
+                    "Affiliation",
+                    "Year",
+                    "Age",
+                    "Education",
+                    "Military",
+                    "Family.Dentists",
+                    "Schools.applied.to",
+                    "Schools.accepted.to",
+                    "Reapply",
+                    "Undergrad.GPA",
+                    "Grad.GPA",
+                    "DAT.score",
+                    "Plans",
+                    "Residency",
+                    "Plans.described",
+                    "Gender",
+                    "Ethnicity",
+                    "Department",
+                    "Admissions.committee",
+                    "age1")
+
+#Keeping only necessary variables
+demodat2 <- demodat[,which(names(demodat) %in% c("Id",
+                                               "Year",
+                                               "Age",
+                                               "Schools.applied.to",
+                                               "Schools.accepted.to",
+                                               "Undergrad.GPA",
+                                               "DAT.score",
+                                               "Residency",
+                                               "Gender",
+                                               "Ethnicity"))]
+
+#recoding residency 
+demodat2$Residency <- ifelse(demodat2$Residency=="Not interested", "No", "Yes")
+
+#saving dataset
+saveRDS(demodat2, "X:/CommonPrograms/Oral Health Services Research Core/Spiro/Susie/demodat.rds")
+
+```
+
+## Questionairre Data
+
+```{r}
+
+questdat <- big5dat[,c(1,24:73)]
+
+questdat <- questdat[complete.cases(questdat),]
+dim(questdat)
+#55 51
+```
+
+## Personality Response Data
+
+```{r}
+
+persondat <- big5dat[,c(1,74:79)]
+dim(persondat) #68  7
+
+#remove people that didn't complete the study
+table(persondat$Complete.)
+persondat <- persondat[-which(persondat$Complete.==0),]
+dim(persondat) #57  7
+
+persondat$Personality <- apply(persondat[,2:6],1,function(x){names(which.max(x))})
+table(persondat$Personality, exclude = "ifany")
+
+#remove complete variable
+persondat <- persondat[,-7]
+
+names(persondat) <- c("Id",
+                      "Extraversion",
+                      "Agreeableness",
+                      "Conscientiousness",
+                      "Neuroticism",
+                      "Openness to experience",
+                      "Personality")
+
+persondat$Personality[which(persondat$Personality=="Agreeableness.Score.")] <- "Agreeableness"
+persondat$Personality[which(persondat$Personality=="Conscientiousness.Score")] <- "Conscientiousness"
+persondat$Personality[which(persondat$Personality=="Emotional.Stability.Score ")] <- "Neuroticism"
+persondat$Personality[which(persondat$Personality=="Extraversion.Score.")] <- "Extraversion"
+persondat$Personality[which(persondat$Personality=="Intellect.Imagination.Score")] <- "Openness to experience"
+
+table(persondat$Personality, exclude = "ifany")
+
+saveRDS(persondat, "X:/CommonPrograms/Oral Health Services Research Core/Spiro/Susie/persondat.rds")
+
+```
+
+# Linking demographic data to personality data
+
+```{r}
+big5data_final <- inner_join(demodat2, persondat, by="Id")
+dim(big5data_final) #53 27
+
+saveRDS(big5data_final, "X:/CommonPrograms/Oral Health Services Research Core/Spiro/Susie/big5data_final.rds")
+```
+
