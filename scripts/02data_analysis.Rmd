@@ -41,19 +41,19 @@ library(irr)
 # Setting Working Directory
 
 ```{r}
-setwd("X:/CommonPrograms/Oral Health Services Research Core/Spiro/Susie")
+setwd("C:/Users/stili/Documents/Personality_project/data")
 ```
 
 # Reading in Data
 
 ```{r}
-big5data_final <- readRDS("big5data_final.rds")
+big5data_final <- readRDS("C:/Users/stili/Documents/Personality_project/data/big5data_final.rds")
 
 big5data_final$Ethnicity[which(big5data_final$Ethnicity=="Black/African American" |
                                  big5data_final$Ethnicity=="Hispanic")] <- "Other"
 
-persondat <- readRDS("persondat.rds")
-questdat <- readRDS("questdat.rds")
+persondat <- readRDS("C:/Users/stili/Documents/Personality_project/data/persondat.rds")
+questdat <- readRDS("C:/Users/stili/Documents/Personality_project/data/questdat.rds")
 
 #rename openness to experience as just openness
 names(big5data_final)[15] <- "Openness"
@@ -123,6 +123,25 @@ mean(big5data_final$DAT.score)
 sd(big5data_final$DAT.score)
 
 
+#Agreeableness
+mean(big5data_final$Agreeableness)
+sd(big5data_final$Agreeableness)
+
+#Conscientiousness
+mean(big5data_final$Conscientiousness)
+sd(big5data_final$Conscientiousness)
+
+#Neuroticism
+mean(big5data_final$Neuroticism)
+sd(big5data_final$Neuroticism)
+
+#Extraversion
+mean(big5data_final$Extraversion)
+sd(big5data_final$Extraversion)
+
+#Openness
+mean(big5data_final$Openness)
+sd(big5data_final$Openness)
 ```
 
 ##Stratified by Personality

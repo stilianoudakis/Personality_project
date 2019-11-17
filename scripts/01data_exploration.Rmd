@@ -38,13 +38,13 @@ library(corrplot)
 # Setting Working Directory
 
 ```{r}
-setwd("X:/CommonPrograms/Oral Health Services Research Core/Spiro/Susie")
+setwd("C:/Users/stili/Documents/Personality_project")
 ```
 
 # Reading in Data
 
 ```{r}
-big5dat <- read.csv("big5data.csv",
+big5dat <- read.csv("C:/Users/stili/Documents/Personality_project/data/big5data.csv",
                       header = TRUE,
                       na.strings = c("[not completed]", ""),
                     stringsAsFactors = FALSE,
@@ -216,7 +216,7 @@ demodat2 <- demodat[,which(names(demodat) %in% c("Id",
 demodat2$Residency <- ifelse(demodat2$Residency=="Not interested", "No", "Yes")
 
 #saving dataset
-saveRDS(demodat2, "X:/CommonPrograms/Oral Health Services Research Core/Spiro/Susie/demodat.rds")
+saveRDS(demodat2, "C:/Users/stili/Documents/Personality_project/data/demodat.rds")
 
 ```
 
@@ -229,6 +229,8 @@ questdat <- big5dat[,c(1,24:73)]
 questdat <- questdat[complete.cases(questdat),]
 dim(questdat)
 #55 51
+
+saveRDS(questdat, "C:/Users/stili/Documents/Personality_project/data/questdat.rds")
 ```
 
 ## Personality Response Data
@@ -265,7 +267,7 @@ persondat$Personality[which(persondat$Personality=="Intellect.Imagination.Score"
 
 table(persondat$Personality, exclude = "ifany")
 
-saveRDS(persondat, "X:/CommonPrograms/Oral Health Services Research Core/Spiro/Susie/persondat.rds")
+saveRDS(persondat, "C:/Users/stili/Documents/Personality_project/data/persondat.rds")
 
 ```
 
@@ -275,6 +277,6 @@ saveRDS(persondat, "X:/CommonPrograms/Oral Health Services Research Core/Spiro/S
 big5data_final <- inner_join(demodat2, persondat, by="Id")
 dim(big5data_final) #53 27
 
-saveRDS(big5data_final, "X:/CommonPrograms/Oral Health Services Research Core/Spiro/Susie/big5data_final.rds")
+saveRDS(big5data_final, "C:/Users/stili/Documents/Personality_project/data/big5data_final.rds")
 ```
 
